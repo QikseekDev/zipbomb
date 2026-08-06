@@ -3,33 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ZipBomb Generator | anonymous-201</title>
-
-    <!-- Primary Meta Tags -->
-    <meta name="title" content="ZipBomb Generator">
-    <meta name="description" content="A browser-based ZIP bomb generator. Enter your desired unzip size and ZIP file name to generate a decompression bomb. For educational and security research purposes only.">
-    <meta name="keywords" content="zipbomb, zip bomb, decompression bomb, zip of death, security research, compression, DEFLATE, antivirus testing, open source">
-    <meta name="author" content="anonymous-201">
-    <meta name="license" content="MIT">
-    <meta name="theme-color" content="#38bdf8">
-
-    <!-- Open Graph / Facebook -->
-    <meta property="og:type" content="website">
-    <meta property="og:url" content="https://anonymous-201.github.io/zipbomb/">
-    <meta property="og:title" content="ZipBomb Generator">
-    <meta property="og:description" content="Browser-based ZIP bomb generator — specify your unzip size and filename. For educational and security research purposes only.">
-    <meta property="og:image" content="https://anonymous-201.github.io/zipbomb/preview.png">
-
-    <!-- Twitter -->
-    <meta name="twitter:card" content="summary_large_image">
-    <meta name="twitter:url" content="https://anonymous-201.github.io/zipbomb/">
-    <meta name="twitter:title" content="ZipBomb Generator">
-    <meta name="twitter:description" content="Browser-based ZIP bomb generator — specify your unzip size and filename. For educational and security research purposes only.">
-    <meta name="twitter:image" content="https://anonymous-201.github.io/zipbomb/preview.png">
-
-    <!-- GitHub / Open Source -->
-    <link rel="canonical" href="https://anonymous-201.github.io/zipbomb/">
-
+    <title>ZipBomb Generator</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
     <style>
         :root {
@@ -181,16 +155,6 @@
     <button id="generateBtn" onclick="generateArchive()">Generate & Download</button>
 
     <div id="status"></div>
-
-    <div class="info-text">
-        Generates a ZIP bomb using DEFLATE compression. Supports sizes from Bytes up to Petabytes.<br><br>
-        ⚠️ <strong>For educational & security research purposes only.</strong><br>
-        Do not use against systems you don't own or have permission to test.<br><br>
-        <a href="https://github.com/anonymous-201/zipbomb" target="_blank" rel="noopener noreferrer"
-           style="color: #38bdf8; text-decoration: none; font-weight: 600;">
-            ⭐ View on GitHub — anonymous-201/zipbomb
-        </a>
-    </div>
 </div>
 
 <script>
