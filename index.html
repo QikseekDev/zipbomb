@@ -165,20 +165,43 @@ button:disabled{background:#475569;color:#94a3b8;cursor:not-allowed}
     if (pct !==undefined) pendingPct =pct;
     if (!rafScheduled){ rafScheduled=true; requestAnimationFrame(flushUI); } }
 
-  // ---- Lazy CDN loaders --------------------------------------------------
+  // ---- Lazy CDN loaders (with fallbacks) --------------------------------
   const loaded = {};
   function loadScript(src){
     if (loaded[src]) return loaded[src];
     return loaded[src] = new Promise((res, rej) => {
       const s = document.createElement('script'); s.src = src; s.onload = res;
-      s.onerror = () => rej(new Error('Failed to load ' + src)); document.head.appendChild(s);
+      s.onerror = () => { delete loaded[src]; rej(new Error('Failed to load ' + src)); };
+      document.head.appendChild(s);
     });
   }
-  const loadJSZip = () => loadScript('https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js').then(()=>window.JSZip);
-  const loadFflate = () => loadScript('https://cdn.jsdelivr.net/npm/fflate@0.8.2/umd/index.js').then(()=>window.fflate);
+  async function loadScriptWithFallback(urls){
+    let lastErr;
+    for (const u of urls) { try { await loadScript(u); return; } catch (e) { lastErr = e; } }
+    throw lastErr;
+  }
+  async function importWithFallback(urls){
+    let lastErr;
+    for (const u of urls) { try { return await import(u); } catch (e) { lastErr = e; } }
+    throw lastErr;
+  }
+  const loadJSZip = () => loadScriptWithFallback([
+    'https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js',
+    'https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js',
+    'https://unpkg.com/jszip@3.10.1/dist/jszip.min.js',
+  ]).then(()=>window.JSZip);
+  const loadFflate = () => loadScriptWithFallback([
+    'https://cdn.jsdelivr.net/npm/fflate@0.8.2/umd/index.js',
+    'https://unpkg.com/fflate@0.8.2/umd/index.js',
+    'https://cdnjs.cloudflare.com/ajax/libs/fflate/0.8.2/umd/index.min.js',
+  ]).then(()=>window.fflate);
   const loadClientZip = () => {
     if (loaded.__cz) return loaded.__cz;
-    return loaded.__cz = import('https://cdn.jsdelivr.net/npm/client-zip@2.4.5/index.js');
+    return loaded.__cz = importWithFallback([
+      'https://cdn.jsdelivr.net/npm/client-zip@2.4.5/index.js',
+      'https://unpkg.com/client-zip@2.4.5/index.js',
+      'https://esm.sh/client-zip@2.4.5',
+    ]);
   };
 
   // ---- Shared helpers ----------------------------------------------------
@@ -254,6 +277,10 @@ button:disabled{background:#475569;color:#94a3b8;cursor:not-allowed}
   // =======================================================================
   async function fflateBuildOneZip(files, level, onPct){
     // files: [{name, sizeBytes(BigInt) OR bytes:Uint8Array, store?:bool}]
+    // NOTE: fflate's AsyncZipDeflate posts pushed buffers to a Web Worker with
+    // transfer semantics, which DETACHES the underlying ArrayBuffer. We must
+    // therefore give it a freshly-allocated Uint8Array on every push — never
+    // reuse ZERO_CHUNK or a shared `bytes` buffer across pushes/entries.
     const fflate = await loadFflate();
     return await new Promise((resolve, reject) => {
       const parts = [];
@@ -272,19 +299,25 @@ button:disabled{background:#475569;color:#94a3b8;cursor:not-allowed}
               : new fflate.AsyncZipDeflate(f.name, { level });
             zip.add(entry);
             if (f.bytes){
-              entry.push(f.bytes, true);
+              // Fresh copy so the worker can transfer/detach it safely,
+              // even if the caller reuses `bytes` across many entries.
+              entry.push(new Uint8Array(f.bytes), true);
             } else {
               let remaining = f.sizeBytes;
               const big = BigInt(CHUNK_SIZE);
-              while (remaining > 0n){
-                const take = remaining >= big ? CHUNK_SIZE : Number(remaining);
-                const chunk = take === CHUNK_SIZE ? ZERO_CHUNK : ZERO_CHUNK.subarray(0, take);
-                const done = remaining <= big;
-                entry.push(chunk, done);
-                remaining -= BigInt(take);
-                if (!done) await new Promise(r=>setTimeout(r,0)); // yield
+              if (remaining === 0n){
+                entry.push(new Uint8Array(0), true);
+              } else {
+                while (remaining > 0n){
+                  const take = remaining >= big ? CHUNK_SIZE : Number(remaining);
+                  // Fresh zero-filled buffer each push (Uint8Array init = 0).
+                  const chunk = new Uint8Array(take);
+                  const done = remaining <= big;
+                  entry.push(chunk, done);
+                  remaining -= BigInt(take);
+                  if (!done) await new Promise(r=>setTimeout(r,0)); // yield
+                }
               }
-              if (f.sizeBytes === 0n) entry.push(new Uint8Array(0), true);
             }
             if (onPct) onPct(((idx+1)/files.length)*100);
           }
@@ -293,6 +326,7 @@ button:disabled{background:#475569;color:#94a3b8;cursor:not-allowed}
       })();
     });
   }
+
 
   async function fflateBuild({type, fileName, level, parsed}){
     if (type === 'nested'){
