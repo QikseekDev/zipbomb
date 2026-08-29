@@ -73,6 +73,9 @@ button:disabled{background:#475569;color:#94a3b8;cursor:not-allowed}
         <option value="GB" selected>Gigabytes (GB)</option>
         <option value="TB">Terabytes (TB)</option>
         <option value="PB">Petabytes (PB)</option>
+        <option value="EB">Exabytes (EB)</option>
+        <option value="ZB">Zettabytes (ZB)</option>
+        <option value="YB">Yottabytes (YB)</option>
       </select>
     </div>
   </div>
@@ -119,7 +122,7 @@ button:disabled{background:#475569;color:#94a3b8;cursor:not-allowed}
 
 <script>
 (() => {
-  const MULTIPLIERS = { B:1n, KB:1024n, MB:1024n**2n, GB:1024n**3n, TB:1024n**4n, PB:1024n**5n };
+  const MULTIPLIERS={B:1n,KB:1024n**1n,MB:1024n**2n,GB:1024n**3n,TB:1024n**4n,PB:1024n**5n,EB:1024n**6n,ZB:1024n**7n,YB:1024n**8n};
   const CHUNK_SIZE = 8 * 1024 * 1024;
   const ZERO_CHUNK = new Uint8Array(CHUNK_SIZE);
 
